@@ -128,7 +128,7 @@ public class TestFDRConstructor extends TestCase{
         cvTerm = "MS:1001172";
         allowedEvalues = "MS:1001330" + ";" + "MS:1001172" + ";" + "MS:1001159" + ";" + "MS:1001328" + ";" + "MS:1002045" + ";" + "MS:1002053";
         betterScoresAreLower = true;
-        fdrLevel = "PSM";
+        fdrLevel = "Peptide";
         proteinLevel = "PDH";
     }
     @Test
