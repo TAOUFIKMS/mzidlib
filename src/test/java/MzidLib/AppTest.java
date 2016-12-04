@@ -1,35 +1,19 @@
 package MzidLib;
 
-import junit.framework.Test;
-import junit.framework.TestCase;
-import junit.framework.TestSuite;
-
 /**
- * Unit test for simple App.
+ * Created by msproteo on 25/11/16.
  */
-public class AppTest
-        extends TestCase {
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
+import uk.ac.liv.mzidlib.fdr.TestFalseDiscoveryRateGlobalAttributes;
+import uk.ac.liv.mzidlib.fdr.TestFalseDiscoveryRateGlobalConstructor;
 
-    /**
-     * Create the test case
-     *
-     * @param testName name of the test case
-     */
-    public AppTest(String testName) {
-        super(testName);
-    }
+@RunWith(Suite.class)
 
-    /**
-     * @return the suite of tests being tested
-     */
-    public static Test suite() {
-        return new TestSuite(AppTest.class);
-    }
+@Suite.SuiteClasses({
+        TestFalseDiscoveryRateGlobalConstructor.class,
+        TestFalseDiscoveryRateGlobalAttributes.class
+})
 
-    /**
-     * Rigourous Test :-)
-     */
-    public void testApp() {
-        assertTrue(true);
-    }
+public class AppTest {
 }

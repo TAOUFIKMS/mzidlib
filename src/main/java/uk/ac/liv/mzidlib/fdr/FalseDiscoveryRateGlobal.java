@@ -1,10 +1,6 @@
 package uk.ac.liv.mzidlib.fdr;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.Writer;
+import java.io.*;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -13,12 +9,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-
 import uk.ac.ebi.jmzidml.MzIdentMLElement;
 import uk.ac.ebi.jmzidml.model.MzIdentMLObject;
 import uk.ac.ebi.jmzidml.model.mzidml.*;
 import uk.ac.ebi.jmzidml.xml.io.MzIdentMLMarshaller;
 import uk.ac.ebi.jmzidml.xml.io.MzIdentMLUnmarshaller;
+import uk.ac.liv.mzidlib.exceptions.FalseDiscoveryRateGlobalArgumentException;
 import uk.ac.liv.mzidlib.multiplesearch.TreeSortForIndices;
 import uk.ac.liv.mzidlib.util.MzidLibUtils;
 
@@ -26,8 +22,14 @@ import uk.ac.liv.mzidlib.util.MzidLibUtils;
  *
  * @author Fawaz Ghali, University of Liverpool, 2013
  */
-public class FalseDiscoveryRateGlobal {
 
+/**
+ * FalseDiscoveryRateGlobal class implementing serializable
+ * Computes FalseDiscoveryRateGlobal on mzid file containing search results
+ */
+public class FalseDiscoveryRateGlobal implements Serializable {
+
+    String mzid;
     // Determine FDR level 1) PSM, 2) Peptide, 3)ProteinGroup
     String fdrLevel = "PSM";
     // PAG or PDH
@@ -76,7 +78,7 @@ public class FalseDiscoveryRateGlobal {
      * MzIdentML elements
      */
     // private MzIdentML mzIdentML;
-    private MzIdentMLUnmarshaller mzIdentMLUnmarshaller;
+    transient private MzIdentMLUnmarshaller mzIdentMLUnmarshaller;
     private List<DBSequence> dBSequenceList = new ArrayList<>();
     private List<Peptide> peptideList = new ArrayList<>();
     private Map<String, DBSequence> dBSequenceMap = new HashMap<>();
@@ -105,10 +107,18 @@ public class FalseDiscoveryRateGlobal {
     // Store best scored PSM for a specific peptide
     Map<String, String> bestScorePSM = new HashMap<>();
 
-    private MzidLibUtils mzidLibUtils;
+    transient private MzidLibUtils mzidLibUtils;
 
-    public static void main(String args[]) {
-        FalseDiscoveryRateGlobal fdrGlobal = new FalseDiscoveryRateGlobal(args[0], args[1], args[2], args[3], Boolean.valueOf(args[4]), args[5], args[6]);
+    public static void main(String args[]) throws FalseDiscoveryRateGlobalArgumentException {
+        if (args.length != 7) {
+            throw new FalseDiscoveryRateGlobalArgumentException("Please see documentation for global false discovery rate  inputs");
+        }
+        FalseDiscoveryRateGlobal fdrGlobal = null;
+        try {
+            fdrGlobal = new FalseDiscoveryRateGlobal(args[0], args[1], args[2], args[3], Boolean.valueOf(args[4]), args[5], args[6]);
+        } catch (FalseDiscoveryRateGlobalArgumentException e) {
+            e.printStackTrace();
+        }
         fdrGlobal.computeFDRusingJonesMethod();
         fdrGlobal.writeToMzIdentMLFile(args[7]);
     }
@@ -160,7 +170,7 @@ public class FalseDiscoveryRateGlobal {
 
     }
 
-    private void readMzIdentMLPeptide() {
+    private void readMzIdentMLPeptide() throws FalseDiscoveryRateGlobalArgumentException {
         try {
 
             Iterator<MzIdentMLObject> iterSpectrumIdentificationResult = mzIdentMLUnmarshaller.unmarshalCollectionFromXpath(MzIdentMLElement.SpectrumIdentificationResult);
@@ -188,7 +198,8 @@ public class FalseDiscoveryRateGlobal {
                                         break;
                                     }
                                 } else {
-                                    System.out.println("Error - no decoy value set, need to use alternative constructor");
+                                    throw new FalseDiscoveryRateGlobalArgumentException("Error - no decoy value set, need to use alternative constructor");
+
                                 }
                             }
                         }
@@ -261,7 +272,7 @@ public class FalseDiscoveryRateGlobal {
         }
     }
 
-    private void readMzIdentMLProteinGroup() {
+    private void readMzIdentMLProteinGroup() throws FalseDiscoveryRateGlobalArgumentException {
 
 //        try {
 //
@@ -389,7 +400,10 @@ public class FalseDiscoveryRateGlobal {
                                     break;
                                 }
                             } else {
-                                System.out.println("Error - no decoy value set, need to use alternative constructor");
+
+                                    throw new FalseDiscoveryRateGlobalArgumentException("Error - no decoy value set, need to use alternative constructor");
+
+
                             }
                         }
                     }
@@ -432,7 +446,7 @@ public class FalseDiscoveryRateGlobal {
 
     }
 
-    private void readMzIdentML() {
+    private void readMzIdentML() throws FalseDiscoveryRateGlobalArgumentException {
         readMetaData();
         readSequenceCollection();
         //Determine FDR level 1) PSM, 2) Peptide, 3)ProteinGroup
@@ -470,7 +484,7 @@ public class FalseDiscoveryRateGlobal {
                                             break;
                                         }
                                     } else {
-                                        System.out.println("Error - no decoy value set, need to use alternative constructor");
+                                            throw new FalseDiscoveryRateGlobalArgumentException("Error - no decoy value set, need to use alternative constructor");
                                     }
                                 }
                             }
@@ -1140,15 +1154,33 @@ public class FalseDiscoveryRateGlobal {
     }
 
     // Added by FG  for sending the specific CV term to use as an alternative mode, also we need a Boolean for -betterScoresAreLower = true or false
-    public FalseDiscoveryRateGlobal(String mzid, String decoyRatio, String decoy, String cvTerm, boolean betterScoresAreLower, String fdrLevel, String proteinLevel) {
+    public FalseDiscoveryRateGlobal(String mzid, String decoyRatio, String decoy, String cvTerm, boolean betterScoresAreLower, String fdrLevel, String proteinLevel) throws FalseDiscoveryRateGlobalArgumentException {
+        this.mzid = mzid;
         this.decoyRatio = Double.valueOf(decoyRatio);
+        if(this.decoyRatio <= 0){
+            throw new FalseDiscoveryRateGlobalArgumentException("decoyRatio should be positive");
+        }
         this.decoy = decoy;
         this.cvTerm = cvTerm;
-        this.fdrLevel = fdrLevel;
-        this.proteinLevel = proteinLevel;
-
+        if("PSMPeptideProteinGroup".contains(fdrLevel)){
+            this.fdrLevel = fdrLevel;
+        }else{
+            throw new FalseDiscoveryRateGlobalArgumentException("FDR level should be PSM, Peptide or ProteinGroup");
+        }
+        if("PAGPDH".contains(proteinLevel)){
+            this.proteinLevel = proteinLevel;
+        }else{
+            throw new FalseDiscoveryRateGlobalArgumentException("Protein level should be PAG or PDH");
+        }
         if (!cvTerm.equals("") && cvTerm != null) {
-            allowedEvalues = cvTerm;
+            if(!cvTerm.contains("MS:")){
+                throw new FalseDiscoveryRateGlobalArgumentException("Check cvTerm input allowed evalues");
+            }else{
+                allowedEvalues = cvTerm;
+            }
+
+        }else{
+            throw new FalseDiscoveryRateGlobalArgumentException("Check cvTerm input (Null or empty) allowed evalues");
         }
 
         this.betterScoresAreLower = betterScoresAreLower;
